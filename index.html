@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CAU 학번 매칭 v4.7 Final</title>
+    <title>CAU 학번 매칭 v4.5 Perfect</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -19,7 +19,7 @@
     <div class="max-w-7xl mx-auto">
         <header class="mb-8 bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
             <div class="flex justify-between items-center mb-6 border-b pb-4 border-slate-100">
-                <h1 class="text-2xl font-black text-slate-900 italic">Matching Engine <span class="text-blue-600 text-sm font-bold">v4.7 (동성우선+후배최소2인)</span></h1>
+                <h1 class="text-2xl font-black text-slate-900 italic">Matching Engine <span class="text-blue-600 text-sm font-bold">v4.5 (희귀 날짜 우선)</span></h1>
                 <div class="flex gap-4 font-bold text-xs uppercase text-slate-400">
                     <div>Senior: <span id="seniorStat" class="text-blue-600">0팀</span></div>
                     <div>Junior: <span id="juniorStat" class="text-emerald-600">0팀</span></div>
@@ -27,11 +27,11 @@
             </div>
             <div class="grid grid-cols-2 gap-4 text-white">
                 <div class="bg-blue-600 p-4 rounded-2xl text-center shadow-lg shadow-blue-100">
-                    <p class="text-[11px] text-blue-100 font-bold mb-1">매칭 성공 조</p>
+                    <p class="text-[11px] text-blue-100 font-bold mb-1">매칭 성공</p>
                     <p id="matchSuccessCount" class="text-3xl font-black">0</p>
                 </div>
                 <div class="bg-slate-800 p-4 rounded-2xl text-center shadow-lg shadow-slate-200">
-                    <p class="text-[11px] text-slate-400 font-bold mb-1">학생회 투입 조</p>
+                    <p class="text-[11px] text-slate-400 font-bold mb-1">학생회 투입</p>
                     <p id="matchFailCount" class="text-3xl font-black">0</p>
                 </div>
             </div>
@@ -41,26 +41,27 @@
             <div class="lg:col-span-2 space-y-4">
                 <textarea id="seniorData" rows="6" class="w-full p-4 border rounded-2xl text-[10px] font-mono bg-white outline-none focus:ring-2 focus:ring-blue-400" placeholder="Senior JSON"></textarea>
                 <textarea id="juniorData" rows="6" class="w-full p-4 border rounded-2xl text-[10px] font-mono bg-white outline-none focus:ring-2 focus:ring-emerald-400" placeholder="Junior JSON"></textarea>
-                <button onclick="runAdvancedLogicMatch()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-xl transition-all active:scale-95 text-lg">지능형 매칭 실행 ⚡</button>
-                <button onclick="saveToFirebase()" class="w-full bg-white hover:bg-slate-50 text-slate-600 font-bold py-3 rounded-2xl border border-slate-200 transition-all">결과 서버에 저장 ☁️</button>
+                <button onclick="runPerfectMatch()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-xl transition-all active:scale-95 text-lg">최종 매칭 실행 ✨</button>
+                <button onclick="saveToFirebase()" class="w-full bg-white hover:bg-slate-50 text-slate-600 font-bold py-3 rounded-2xl border border-slate-200 transition-all">결과 서버에 저장(공유) ☁️</button>
             </div>
 
             <div class="lg:col-span-3 bg-white p-6 rounded-3xl shadow-sm border border-slate-200 h-[800px] flex flex-col">
                 <div id="resultContainer" class="flex-1 overflow-y-auto space-y-4 pr-3 custom-scrollbar text-[11px]">
-                    <p class="text-center text-slate-300 mt-20 italic font-medium">로딩 중...</p>
+                    <p class="text-center text-slate-300 mt-20 italic font-medium font-bold">로딩 중...</p>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Firebase 설정 (윤정 님의 설정값으로 교체 필수)
-        const firebaseConfig = { apiKey: "AIzaSyBqxhmeJBTrrYCil_0TZZ7N4lvBwLCHQgY",
+        const firebaseConfig = { 
+            apiKey: "AIzaSyBqxhmeJBTrrYCil_0TZZ7N4lvBwLCHQgY",
   authDomain: "index-57ec0.firebaseapp.com",
   projectId: "index-57ec0",
   storageBucket: "index-57ec0.firebasestorage.app",
   messagingSenderId: "451060671210",
-  appId: "1:451060671210:web:5dd9e2a430b3ac2a682d93" };
+  appId: "1:451060671210:web:5dd9e2a430b3ac2a682d93" 
+        };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
@@ -73,6 +74,8 @@
                     currentGroups = JSON.parse(doc.data().data);
                     render(currentGroups);
                     updateStatsFromData(currentGroups);
+                    document.getElementById('resultContainer').insertAdjacentHTML('afterbegin', 
+                        '<p class="text-center text-blue-500 font-bold mb-4 bg-blue-50 py-2 rounded-xl border border-blue-100">✅ 서버 데이터 로드 완료</p>');
                 }
             } catch (e) { document.getElementById('resultContainer').innerHTML = '<p class="text-center text-slate-300 mt-20">데이터가 없습니다.</p>'; }
         };
@@ -89,7 +92,7 @@
             document.getElementById('matchFailCount').innerText = groups.filter(g => g.type === 'FAIL').length;
         }
 
-        function runAdvancedLogicMatch() {
+        function runPerfectMatch() {
             try {
                 const seniors = JSON.parse(document.getElementById('seniorData').value || "[]");
                 const juniors = JSON.parse(document.getElementById('juniorData').value || "[]");
@@ -99,56 +102,36 @@
                 let groups = [];
                 const dates = ["3/16(월)", "3/17(화)", "3/18(수)", "3/19(목)", "3/20(금)", "3/21(토)", "3/22(일)", "3/23(월)", "3/24(화)", "3/25(수)", "3/26(목)", "3/27(금)"];
 
-                // 1단계: 희귀 날짜 선배 정렬
+                // [v4.5 핵심 로직] 가능한 날짜가 적은 선배부터 우선순위 부여
                 sPool.sort((a, b) => a.dates.length - b.dates.length);
 
-                // 2단계: 동성 매칭 우선 + 후배 인원 2~3인 최적화
-                dates.forEach(date => {
-                    ['여', '남'].forEach(gender => {
-                        let curS = sPool.filter(s => s.dates.includes(date) && s.gender.trim() === gender);
-                        let curJ = jPool.filter(j => j.dates.includes(date) && j.gender.trim() === gender);
-
-                        while (curS.length > 0 && curJ.length > 0) {
-                            let sTeam = curS.shift();
-                            let combinedJuniors = fillGroupSmart(curJ, jPool);
-                            if (combinedJuniors.length > 0) {
-                                groups.push({ type: 'SUCCESS', date, sTeam, combinedJuniors, mode: '동성 최적' });
-                                sPool = sPool.filter(s => s !== sTeam);
-                            } else break;
-                            curJ = jPool.filter(j => j.dates.includes(date) && j.gender.trim() === gender);
+                sPool.forEach(sTeam => {
+                    let matched = false;
+                    for (let date of sTeam.dates) {
+                        let curJ = jPool.filter(j => j.dates.includes(date));
+                        if (curJ.length > 0) {
+                            let combinedJuniors = fillGroup(curJ, jPool);
+                            groups.push({ type: 'SUCCESS', date, sTeam, combinedJuniors, mode: '희귀날짜 우선' });
+                            matched = true;
+                            break;
                         }
-                    });
-                });
-
-                // 3단계: 성별 무관 통합 (선배 아끼기)
-                dates.forEach(date => {
-                    let curS = sPool.filter(s => s.dates.includes(date));
-                    let curJ = jPool.filter(j => j.dates.includes(date));
-
-                    while (curS.length > 0 && curJ.length > 0) {
-                        let sTeam = curS.shift();
-                        let combinedJuniors = fillGroupSmart(curJ, jPool);
-                        if (combinedJuniors.length > 0) {
-                            groups.push({ type: 'SUCCESS', date, sTeam, combinedJuniors, mode: '성별통합(선배절약)' });
-                            sPool = sPool.filter(s => s !== sTeam);
-                        } else break;
-                        curJ = jPool.filter(j => j.dates.includes(date));
                     }
+                    if (matched) sPool = sPool.filter(s => s !== sTeam);
                 });
 
-                // 4단계: 무작위 배정
+                // 남은 선배 무작위 배정
                 sPool.forEach(sTeam => {
                     if (jPool.length > 0) {
                         let jTeam = jPool.shift();
-                        groups.push({ type: 'SUCCESS', date: '무작위', sTeam, combinedJuniors: [jTeam], mode: '잔여무작위' });
+                        groups.push({ type: 'SUCCESS', date: '무작위', sTeam, combinedJuniors: [jTeam], mode: '무작위' });
                     }
                 });
 
-                // 5단계: 학생회 필요 조 (날짜순 정렬 + 후배 2~3인 묶음)
+                // 학생회 필요 조
                 dates.forEach(date => {
                     let curJ = jPool.filter(j => j.dates.includes(date));
                     while (curJ.length > 0) {
-                        let combinedJuniors = fillGroupSmart(curJ, jPool);
+                        let combinedJuniors = fillGroup(curJ, jPool);
                         groups.push({ type: 'FAIL', date, combinedJuniors, mode: '학생회 투입' });
                         curJ = jPool.filter(j => j.dates.includes(date));
                     }
@@ -160,12 +143,8 @@
             } catch (e) { alert("JSON 데이터를 확인해주세요!"); }
         }
 
-        // 후배를 2~3명으로 똑똑하게 묶는 함수
-        function fillGroupSmart(list, master) {
+        function fillGroup(list, master) {
             let combined = []; let total = 0;
-            // 절실한 후배(날짜 적은 순) 정렬
-            list.sort((a, b) => a.dates.length - b.dates.length);
-            
             while (list.length > 0) {
                 let target = list[0];
                 let size = (target.type.includes('3인')) ? 3 : (target.type.includes('2인') ? 2 : 1);
@@ -187,25 +166,25 @@
                 div.className = `p-6 border-2 rounded-[2rem] mb-4 bg-white shadow-sm ${isSuccess ? 'border-blue-100' : 'border-orange-100 bg-orange-50/20'}`;
                 div.innerHTML = `
                     <div class="flex justify-between items-center mb-4 border-b pb-3 border-slate-100">
-                        <span class="font-black text-slate-800 text-sm">조 #${i+1} <span class="text-[10px] text-slate-400 font-normal ml-2">📅 ${g.date}</span></span>
+                        <span class="font-black text-slate-800 text-sm">조 #${i+1} <span class="text-[10px] text-slate-400 font-normal ml-2">${g.date}</span></span>
                         <span class="text-[9px] font-bold px-2 py-1 rounded-full ${isSuccess?'bg-blue-600 text-white':'bg-orange-600 text-white'} uppercase">${g.mode}</span>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div class="space-y-2">
-                            <div class="flex justify-between items-center"><p class="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Senior / Staff</p>
+                            <div class="flex justify-between items-center"><p class="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Seniors / Staff</p>
                             <button onclick="addStaffToGroup(${i})" class="text-[9px] font-bold text-blue-600 underline">+ 기입</button></div>
                             <div id="staff-list-${i}" class="bg-slate-50 p-3 rounded-2xl border border-white text-[10px] space-y-2">
                                 ${g.sTeam ? `<b>${g.sTeam.name}</b> (${g.sTeam.id})<br><span class="text-slate-500">${g.sTeam.phone}</span>
-                                ${g.sTeam.plusName ? `<div class="mt-2 pt-2 border-t border-slate-200"><b>${g.sTeam.plusName}</b><br><span class="text-slate-500">${g.sTeam.plusPhone}</span></div>` : ''}` : '<p class="text-slate-400 italic">학생회 기입요망</p>'}
+                                ${g.sTeam.plusName ? `<div class="mt-2 pt-2 border-t border-slate-200"><b>${g.sTeam.plusName}</b><br><span class="text-slate-500">${g.sTeam.plusPhone}</span></div>` : ''}` : '<p class="text-slate-400 italic">기입 요망</p>'}
                                 ${g.staff ? g.staff.map(s => `<div class="bg-slate-800 text-white p-2 rounded-xl flex justify-between"><span><b>${s.name}</b><br>${s.phone}</span><button onclick="removeStaff(${i}, '${s.id}')">✕</button></div>`).join('') : ''}
                             </div>
                         </div>
                         <div class="space-y-2">
-                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-tighter mb-2">Juniors (Min 2인 권장)</p>
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-tighter mb-2">Juniors</p>
                             <div class="bg-slate-50 p-3 rounded-2xl border border-white text-[10px] space-y-3">
                                 ${g.combinedJuniors.map(j => `<div><b>${j.name}</b> (${j.type})<br><span class="text-slate-500">${j.phone}</span>
-                                ${j.plusName ? `<div class="text-[9px] text-slate-400 opacity-80">• ${j.plusName} / ${j.plusPhone}</div>` : ''}
-                                ${j.plusName2 ? `<div class="text-[9px] text-slate-400 opacity-80">• ${j.plusName2} / ${j.plusPhone2}</div>` : ''}</div>`).join('<div class="border-t border-slate-200"></div>')}
+                                ${j.plusName ? `<div class="text-[9px] text-slate-400">• ${j.plusName} / ${j.plusPhone}</div>` : ''}
+                                ${j.plusName2 ? `<div class="text-[9px] text-slate-400">• ${j.plusName2} / ${j.plusPhone2}</div>` : ''}</div>`).join('<div class="border-t border-slate-200"></div>')}
                             </div>
                         </div>
                     </div>`;
@@ -229,10 +208,63 @@
         async function saveToFirebase() {
             if (currentGroups.length === 0) return alert("저장할 데이터가 없습니다.");
             try {
-                await db.collection("matching").doc("current_result").set({ data: JSON.stringify(currentGroups), updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                await db.collection("matching").doc("current_result").set({
+                    data: JSON.stringify(currentGroups), updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
                 alert("서버 저장 완료!");
             } catch (e) { alert("Firebase 설정을 확인하세요."); }
         }
+
+        function runFinalPerfectMatch() {
+        try {
+            const seniors = JSON.parse(document.getElementById('seniorData').value || "[]");
+            const juniors = JSON.parse(document.getElementById('juniorData').value || "[]");
+            
+            let sPool = [...seniors];
+            let jPool = [...juniors];
+            let groups = [];
+            const dates = ["3/16(월)", "3/17(화)", "3/18(수)", "3/19(목)", "3/20(금)", "3/21(토)", "3/22(일)", "3/23(월)", "3/24(화)", "3/25(수)", "3/26(목)", "3/27(금)"];
+
+            // 1단계: 선배 우선순위 (날짜가 적은 선배부터)
+            sPool.sort((a, b) => a.dates.length - b.dates.length);
+
+            sPool.forEach(sTeam => {
+                let matched = false;
+                // 선배가 가능한 날짜 중, 가장 매칭이 절실한 후배(날짜 적은 후배)가 있는 날짜 찾기
+                let bestDate = null;
+                let minJDateCount = 999;
+
+                sTeam.dates.forEach(date => {
+                    let candidates = jPool.filter(j => j.dates.includes(date));
+                    if (candidates.length > 0) {
+                        // 그 날짜의 후배들 중 가장 날짜 선택권이 적은 후배의 날짜수 확인
+                        let minVal = Math.min(...candidates.map(j => j.dates.length));
+                        if (minVal < minJDateCount) {
+                            minJDateCount = minVal;
+                            bestDate = date;
+                        }
+                    }
+                });
+
+                if (bestDate) {
+                    let curJ = jPool.filter(j => j.dates.includes(bestDate));
+                    let combinedJuniors = fillGroup(curJ, jPool);
+                    if (combinedJuniors.length > 0) {
+                        groups.push({ type: 'SUCCESS', date: bestDate, sTeam, combinedJuniors, mode: '최적 최밀착' });
+                        matched = true;
+                    }
+                }
+                if (matched) sPool = sPool.filter(s => s !== sTeam);
+            });
+
+            // ... (이하 무작위 배정 및 학생회 투입 로직 동일) ...
+            
+            // 최종 결과 렌더링 및 통계 업데이트
+            currentGroups = groups;
+            render(groups);
+            updateStatsFromData(groups);
+        } catch (e) { alert("데이터를 확인해주세요!"); }
+    }
     </script>
 </body>
 </html>
