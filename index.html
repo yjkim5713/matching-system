@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAU 학번 매칭 v4.3 Final</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;800&display=swap');
+        body { font-family: 'Pretendard', sans-serif; letter-spacing: -0.025em; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <header class="mb-8 bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+            <div class="flex justify-between items-center mb-6 border-b pb-4 border-slate-100">
+                <h1 class="text-2xl font-black text-slate-900 underline decoration-blue-500 underline-offset-8">학번 교류 최종 매칭 매니저</h1>
+                <div class="flex gap-4 font-bold text-xs uppercase tracking-tighter">
+                    <div class="text-slate-400">Senior: <span id="seniorStat" class="text-blue-600">0</span></div>
+                    <div class="text-slate-400">Junior: <span id="juniorStat" class="text-emerald-600">0</span></div>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-blue-600 p-4 rounded-2xl text-center shadow-lg shadow-blue-100">
+                    <p class="text-[11px] text-blue-100 font-bold mb-1">매칭 성공 (선배 배정)</p>
+                    <p id="matchSuccessCount" class="text-3xl font-black text-white">0</p>
+                </div>
+                <div class="bg-orange-500 p-4 rounded-2xl text-center shadow-lg shadow-orange-100">
+                    <p class="text-[11px] text-orange-100 font-bold mb-1">매칭 실패 (학생회 필요)</p>
+                    <p id="matchFailCount" class="text-3xl font-black text-white">0</p>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+            <div class="lg:col-span-2 space-y-4">
+                <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200">
+                    <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase">Senior JSON</label>
+                    <textarea id="seniorData" rows="6" class="w-full p-4 border rounded-2xl text-[10px] font-mono bg-slate-50 outline-none focus:ring-2 focus:ring-blue-400"></textarea>
+                </div>
+                <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200">
+                    <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase">Junior JSON</label>
+                    <textarea id="juniorData" rows="6" class="w-full p-4 border rounded-2xl text-[10px] font-mono bg-slate-50 outline-none focus:ring-2 focus:ring-emerald-400"></textarea>
+                </div>
+                <button onclick="runFinalMatching()" class="w-full bg-slate-900 hover:bg-black text-white font-black py-5 rounded-3xl shadow-xl transition-all active:scale-95 text-xl">
+                    최종 매칭 실행 ⚡
+                </button>
+            </div>
+
+            <div class="lg:col-span-3 bg-white p-6 rounded-3xl shadow-sm border border-slate-200 h-[800px] flex flex-col">
+                <div id="resultContainer" class="flex-1 overflow-y-auto space-y-4 pr-3 custom-scrollbar">
+                    <p class="text-center text-slate-300 mt-20 italic">데이터를 입력하고 실행 버튼을 눌러주세요.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function runFinalMatching() {
+            try {
+                const seniors = JSON.parse(document.getElementById('seniorData').value || "[]");
+                const juniors = JSON.parse(document.getElementById('juniorData').value || "[]");
+                
+                document.getElementById('seniorStat').innerText = seniors.length + "팀";
+                document.getElementById('juniorStat').innerText = juniors.length + "팀";
+
+                let sPool = [...seniors];
+                let jPool = [...juniors];
+                let groups = [];
+
+                const dates = ["3/16(월)", "3/17(화)", "3/18(수)", "3/19(목)", "3/20(금)", "3/21(토)", "3/22(일)", "3/23(월)", "3/24(화)", "3/25(수)", "3/26(목)", "3/27(금)"];
+
+                // 1. 선배-후배 (성별+날짜 일치 우선)
+                dates.forEach(date => {
+                    ['남', '여'].forEach(gender => {
+                        let curS = sPool.filter(s => s.dates.includes(date) && s.gender.trim() === gender);
+                        let curJ = jPool.filter(j => j.dates.includes(date) && j.gender.trim() === gender);
+                        while (curS.length > 0 && curJ.length > 0) {
+                            let sTeam = curS.shift();
+                            let combinedJuniors = fillJuniorGroup(curJ, jPool);
+                            if (combinedJuniors.length > 0) {
+                                groups.push({ type: 'SUCCESS', date, sTeam, combinedJuniors, mode: '정상 매칭' });
+                                sPool = sPool.filter(s => s !== sTeam);
+                            } else { break; }
+                            curJ = jPool.filter(j => j.dates.includes(date) && j.gender.trim() === gender);
+                        }
+                    });
+                });
+
+                // 2. 성별 무관 매칭
+                dates.forEach(date => {
+                    let curS = sPool.filter(s => s.dates.includes(date));
+                    let curJ = jPool.filter(j => j.dates.includes(date));
+                    while (curS.length > 0 && curJ.length > 0) {
+                        let sTeam = curS.shift();
+                        let combinedJuniors = fillJuniorGroup(curJ, jPool);
+                        if (combinedJuniors.length > 0) {
+                            groups.push({ type: 'SUCCESS', date, sTeam, combinedJuniors, mode: '성별무관' });
+                            sPool = sPool.filter(s => s !== sTeam);
+                        } else { break; }
+                        curJ = jPool.filter(j => j.dates.includes(date));
+                    }
+                });
+
+                // 3. 선배 무작위 배정
+                sPool.forEach(sTeam => {
+                    if (jPool.length > 0) {
+                        let jTeam = jPool.shift();
+                        groups.push({ type: 'SUCCESS', date: '무작위', sTeam, combinedJuniors: [jTeam], mode: '무작위' });
+                    }
+                });
+
+                // 4. 남은 후배들 날짜순 정렬하여 학생회 필요 조 생성
+                dates.forEach(date => {
+                    let curJ = jPool.filter(j => j.dates.includes(date));
+                    while (curJ.length > 0) {
+                        let combinedJuniors = fillJuniorGroup(curJ, jPool);
+                        groups.push({ type: 'FAIL', date, combinedJuniors, mode: '학생회 필요' });
+                        curJ = jPool.filter(j => j.dates.includes(date));
+                    }
+                });
+
+                render(groups);
+                updateStats(groups);
+            } catch (e) { alert("JSON 데이터를 확인해주세요!"); }
+        }
+
+        function fillJuniorGroup(currentList, masterPool) {
+            let combined = [];
+            let total = 0;
+            while (currentList.length > 0) {
+                let target = currentList[0];
+                let size = (target.type.includes('3인')) ? 3 : (target.type.includes('2인') ? 2 : 1);
+                if (total + size <= 3) {
+                    combined.push(currentList.shift());
+                    total += size;
+                    masterPool.splice(masterPool.indexOf(target), 1);
+                } else { break; }
+            }
+            return combined;
+        }
+
+        function updateStats(groups) {
+            document.getElementById('matchSuccessCount').innerText = groups.filter(g => g.type === 'SUCCESS').length;
+            document.getElementById('matchFailCount').innerText = groups.filter(g => g.type === 'FAIL').length;
+        }
+
+        function render(groups) {
+            const container = document.getElementById('resultContainer');
+            container.innerHTML = '';
+            groups.forEach((g, i) => {
+                const div = document.createElement('div');
+                const isSuccess = g.type === 'SUCCESS';
+                div.className = `p-5 border-2 rounded-[2rem] shadow-sm mb-4 bg-white fade-in ${isSuccess ? 'border-blue-100' : 'border-orange-100 bg-orange-50/20'}`;
+                
+                div.innerHTML = `
+                    <div class="flex justify-between items-center mb-4 border-b pb-2 border-slate-100">
+                        <span class="font-black text-slate-800 italic">조 #${i+1} <span class="text-[10px] text-slate-400 font-normal ml-2">📅 ${g.date}</span></span>
+                        <span class="text-[9px] font-bold px-2 py-1 rounded-full ${isSuccess?'bg-blue-600 text-white':'bg-orange-500 text-white'} uppercase">${g.mode}</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center">
+                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Senior / Staff</p>
+                                <button onclick="addStaffToGroup(${i})" class="text-[9px] font-bold text-blue-600 underline">+ 직접기입</button>
+                            </div>
+                            <div id="staff-list-${i}" class="bg-slate-50 p-3 rounded-2xl border border-white text-[11px] space-y-2">
+                                ${g.sTeam ? `<div><b>${g.sTeam.name}</b> (${g.sTeam.id})<br><span class="text-slate-500">${g.sTeam.phone}</span>
+                                ${g.sTeam.plusName ? `<div class="mt-2 pt-2 border-t border-slate-200"><b>${g.sTeam.plusName}</b><br><span class="text-slate-500">${g.sTeam.plusPhone}</span></div>` : ''}</div>` : '<p class="text-slate-400 italic">학생회 기입 필요</p>'}
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-tighter mb-2">Juniors</p>
+                            <div class="bg-slate-50 p-3 rounded-2xl border border-white text-[11px] space-y-3">
+                                ${g.combinedJuniors.map(j => `
+                                    <div>
+                                        <b>${j.name}</b> (${j.type})<br><span class="text-slate-500">${j.phone}</span>
+                                        ${j.plusName ? `<div class="text-[10px] text-slate-400">• ${j.plusName} / ${j.plusPhone}</div>` : ''}
+                                        ${j.plusName2 ? `<div class="text-[10px] text-slate-400">• ${j.plusName2} / ${j.plusPhone2}</div>` : ''}
+                                    </div>
+                                `).join('<div class="border-t border-slate-200"></div>')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function addStaffToGroup(groupId) {
+            const name = prompt("학생회 이름:");
+            if (!name) return;
+            const phone = prompt("연락처:");
+            const list = document.getElementById(`staff-list-${groupId}`);
+            const div = document.createElement('div');
+            div.className = "bg-slate-800 text-white p-2 rounded-xl flex justify-between items-center mt-2 animate-in fade-in slide-in-from-top-1 duration-200";
+            div.innerHTML = `<div class="text-[10px]"><b>${name}</b><br>${phone}</div><button onclick="this.parentElement.remove()" class="text-white/40 ml-2 hover:text-white">✕</button>`;
+            list.appendChild(div);
+        }
+    </script>
+</body>
+</html>
