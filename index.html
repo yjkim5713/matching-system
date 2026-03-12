@@ -214,6 +214,57 @@
                 alert("서버 저장 완료!");
             } catch (e) { alert("Firebase 설정을 확인하세요."); }
         }
+
+        function runFinalPerfectMatch() {
+        try {
+            const seniors = JSON.parse(document.getElementById('seniorData').value || "[]");
+            const juniors = JSON.parse(document.getElementById('juniorData').value || "[]");
+            
+            let sPool = [...seniors];
+            let jPool = [...juniors];
+            let groups = [];
+            const dates = ["3/16(월)", "3/17(화)", "3/18(수)", "3/19(목)", "3/20(금)", "3/21(토)", "3/22(일)", "3/23(월)", "3/24(화)", "3/25(수)", "3/26(목)", "3/27(금)"];
+
+            // 1단계: 선배 우선순위 (날짜가 적은 선배부터)
+            sPool.sort((a, b) => a.dates.length - b.dates.length);
+
+            sPool.forEach(sTeam => {
+                let matched = false;
+                // 선배가 가능한 날짜 중, 가장 매칭이 절실한 후배(날짜 적은 후배)가 있는 날짜 찾기
+                let bestDate = null;
+                let minJDateCount = 999;
+
+                sTeam.dates.forEach(date => {
+                    let candidates = jPool.filter(j => j.dates.includes(date));
+                    if (candidates.length > 0) {
+                        // 그 날짜의 후배들 중 가장 날짜 선택권이 적은 후배의 날짜수 확인
+                        let minVal = Math.min(...candidates.map(j => j.dates.length));
+                        if (minVal < minJDateCount) {
+                            minJDateCount = minVal;
+                            bestDate = date;
+                        }
+                    }
+                });
+
+                if (bestDate) {
+                    let curJ = jPool.filter(j => j.dates.includes(bestDate));
+                    let combinedJuniors = fillGroup(curJ, jPool);
+                    if (combinedJuniors.length > 0) {
+                        groups.push({ type: 'SUCCESS', date: bestDate, sTeam, combinedJuniors, mode: '최적 최밀착' });
+                        matched = true;
+                    }
+                }
+                if (matched) sPool = sPool.filter(s => s !== sTeam);
+            });
+
+            // ... (이하 무작위 배정 및 학생회 투입 로직 동일) ...
+            
+            // 최종 결과 렌더링 및 통계 업데이트
+            currentGroups = groups;
+            render(groups);
+            updateStatsFromData(groups);
+        } catch (e) { alert("데이터를 확인해주세요!"); }
+    }
     </script>
 </body>
 </html>
