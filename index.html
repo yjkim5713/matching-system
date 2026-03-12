@@ -84,7 +84,23 @@
                 if (doc.exists) {
                     currentGroups = JSON.parse(doc.data().data);
                     render(currentGroups);
-                    updateStats(currentGroups);
+                    
+                    // --- 이 부분이 추가되어야 숫자가 바로 뜹니다 ---
+                    updateStats(currentGroups); 
+                    
+                    // 선배/후배 총 신청 팀수 계산 (저장된 데이터 기반)
+                    let sCount = 0;
+                    let jCount = 0;
+                    currentGroups.forEach(g => {
+                        if (g.sTeam) sCount++;
+                        if (g.combinedJuniors) jCount += g.combinedJuniors.length;
+                    });
+                    document.getElementById('seniorStat').innerText = sCount + "팀";
+                    document.getElementById('juniorStat').innerText = jCount + "팀";
+                    // ------------------------------------------
+
+                    document.getElementById('resultContainer').insertAdjacentHTML('afterbegin', 
+                        '<p class="text-center text-blue-500 font-bold mb-4 bg-blue-50 py-2 rounded-xl border border-blue-100 italic">✅ 서버에서 최신 배정 결과를 불러왔습니다.</p>');
                 }
             } catch (e) { console.log("불러올 데이터가 없습니다."); }
         };
