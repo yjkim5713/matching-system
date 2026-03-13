@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CAU Pharmacy Matching v9.9 Final</title>
+    <title>CAU Pharmacy Matching v10.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -18,7 +18,7 @@
 
     <div class="max-w-7xl mx-auto">
         <header class="mb-8 bg-white p-6 rounded-3xl shadow-sm border border-slate-200 text-center">
-            <h1 class="text-2xl font-black text-slate-900 italic tracking-tighter">Matching Engine <span class="text-blue-600">v9.9 (선배 33팀 전원보장)</span></h1>
+            <h1 class="text-2xl font-black text-slate-900 italic tracking-tighter">Matching Engine <span class="text-blue-600">v10.1 (Final Mastery)</span></h1>
             <div id="statArea" class="mt-4 flex justify-center gap-10 font-black text-sm text-slate-500">
                 <div>선배 신청: <span id="seniorStat" class="text-blue-600 text-xl">0팀</span></div>
                 <div>후배 신청: <span id="juniorStat" class="text-emerald-600 text-xl">0팀</span></div>
@@ -39,7 +39,7 @@
             <div class="lg:col-span-2 space-y-4">
                 <textarea id="seniorData" rows="6" class="w-full p-4 border rounded-2xl text-[10px] font-mono bg-white outline-none focus:ring-2 focus:ring-blue-400" placeholder="Senior JSON"></textarea>
                 <textarea id="juniorData" rows="6" class="w-full p-4 border rounded-2xl text-[10px] font-mono bg-white outline-none focus:ring-2 focus:ring-emerald-400" placeholder="Junior JSON"></textarea>
-                <button onclick="runUltimateV99()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-5 rounded-2xl shadow-xl transition-all active:scale-95 text-lg">33팀 전원 매칭 실행 ⚡</button>
+                <button onclick="runUltimateV101()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-5 rounded-2xl shadow-xl transition-all active:scale-95 text-lg">전원 매칭 시작 (v10.1) ⚡</button>
             </div>
             <div class="lg:col-span-3 bg-white p-6 rounded-3xl shadow-sm border border-slate-200 h-[800px] flex flex-col mt-8 lg:mt-0">
                 <div id="resultContainer" class="flex-1 overflow-y-auto space-y-4 pr-3 custom-scrollbar text-[11px]">
@@ -50,7 +50,7 @@
     </div>
 
     <script>
-        // Firebase 설정 유지
+        // Firebase 설정 (기존 키 유지)
         const firebaseConfig = { apiKey: "AIzaSyBqxhmeJBTrrYCil_0TZZ7N4lvBwLCHQgY",
   authDomain: "index-57ec0.firebaseapp.com",
   projectId: "index-57ec0",
@@ -62,7 +62,7 @@
 
         const dateOrder = ["3/16(월)", "3/17(화)", "3/18(수)", "3/19(목)", "3/20(금)", "3/21(토)", "3/22(일)", "3/23(월)", "3/24(화)", "3/25(수)", "3/26(목)", "3/27(금)"];
 
-        function runUltimateV99() {
+        function runUltimateV101() {
             try {
                 const sIn = JSON.parse(document.getElementById('seniorData').value || "[]");
                 const jIn = JSON.parse(document.getElementById('juniorData').value || "[]");
@@ -71,28 +71,28 @@
                 let jPool = [...jIn];
                 let finalGroups = [];
 
-                // 1. 선배 날짜 적은 순(박연수, 이래현 보호) 정렬
+                // 1. 선배 우선순위 정렬 (날짜 적은 팀 보호)
                 sPool.sort((a, b) => {
                     if (a.dates.includes("모두 불가")) return 1;
                     if (b.dates.includes("모두 불가")) return -1;
                     return a.dates.length - b.dates.length;
                 });
 
-                // 2. [핵심] 선배 33팀을 기준으로 루프 돌며 후배 무조건 배정
+                // 2. 선배 33팀에 대해 순차 매칭
                 sPool.forEach(senior => {
                     let combined = [];
-                    // 선배 가능 날짜 중 후배 찾기
+                    // 날짜 맞는 후배 탐색
                     for (let d of senior.dates) {
-                        let matchedJuniors = jPool.filter(j => j.dates.includes(d));
-                        if (matchedJuniors.length > 0) {
-                            combined = getSafeJuniorsV99(matchedJuniors, jPool);
+                        let curJ = jPool.filter(j => j.dates.includes(d));
+                        if (curJ.length > 0) {
+                            combined = getJuniorsV101(curJ, jPool);
                             break;
                         }
                     }
 
-                    // 날짜 맞는 후배가 없으면? 남은 후배 중 무조건 아무나 배정 (선배 단독조 방지)
+                    // 날짜 맞는 후배 없으면 아무나 배정 (선배 고립 방지)
                     if (combined.length === 0 && jPool.length > 0) {
-                        combined = getSafeJuniorsV99(jPool, jPool);
+                        combined = getJuniorsV101(jPool, jPool);
                     }
 
                     finalGroups.push({
@@ -103,9 +103,9 @@
                     });
                 });
 
-                // 3. 남은 후배들 학생회 조 (후배 단독조 허용)
+                // 3. 남은 후배들 학생회 조
                 while (jPool.length > 0) {
-                    let combined = getSafeJuniorsV99(jPool, jPool);
+                    let combined = getJuniorsV101(jPool, jPool);
                     finalGroups.push({
                         date: combined[0]?.dates[0] || "날짜미정",
                         sTeam: null,
@@ -114,7 +114,7 @@
                     });
                 }
 
-                // 4. 날짜순 정렬
+                // 4. 날짜순 정렬 (3/16부터)
                 finalGroups.sort((a, b) => {
                     const idxA = dateOrder.indexOf(a.date);
                     const idxB = dateOrder.indexOf(b.date);
@@ -125,7 +125,7 @@
                 });
 
                 currentGroups = finalGroups;
-                renderV99(finalGroups);
+                renderV101(finalGroups);
                 
                 document.getElementById('seniorStat').innerText = sIn.length + "팀";
                 document.getElementById('juniorStat').innerText = jIn.length + "팀";
@@ -135,12 +135,12 @@
             } catch (e) { alert("데이터 형식을 확인해주세요!"); }
         }
 
-        function getSafeJuniorsV99(list, master) {
+        function getJuniorsV101(list, master) {
             if (list.length === 0) return [];
             let combined = [];
+            
+            // 후배 4명일 때 2:2 분할 원칙 유지
             let solos = list.filter(j => j.type === '개별팀');
-            let teams = list.filter(j => j.type !== '개별팀');
-
             if (solos.length === 4) {
                 for (let i = 0; i < 2; i++) {
                     let s = solos.shift(); combined.push(s);
@@ -148,26 +148,24 @@
                 }
                 return combined;
             }
-            if (teams.length > 0) {
-                let t = teams[0]; combined.push(t);
-                master.splice(master.indexOf(t), 1); list.splice(list.indexOf(t), 1);
-                if (t.type.includes('2인') && list.filter(j => j.type === '개별팀').length > 0) {
-                    let s = list.filter(j => j.type === '개별팀')[0];
-                    combined.push(s); master.splice(master.indexOf(s), 1); list.splice(list.indexOf(s), 1);
-                }
-            } else {
-                let count = (solos.length >= 2) ? (solos.length === 4 ? 2 : (solos.length >= 3 ? 3 : 2)) : 1;
-                for (let i = 0; i < count; i++) {
-                    if (solos.length > 0) {
-                        let s = solos.shift(); combined.push(s);
-                        master.splice(master.indexOf(s), 1); list.splice(list.indexOf(s), 1);
-                    }
+
+            // 후배 팀(2~3인) 있으면 우선 배정, 없으면 개별팀이라도 최소 1팀 배정
+            for (let j of list) {
+                let currentTotal = combined.reduce((acc, cur) => acc + (cur.type.includes('3인')?3:(cur.type.includes('2인')?2:1)), 0);
+                let nextSize = j.type.includes('3인')?3:(j.type.includes('2인')?2:1);
+                
+                if (currentTotal === 0 || currentTotal + nextSize <= 3) {
+                    combined.push(j);
+                    master.splice(master.indexOf(j), 1);
+                    // 윤정 님의 요청대로 최대한 2명 이상이 되도록, 하지만 1팀만 있어도 일단 배정 확정
+                    if (currentTotal + nextSize >= 2) break; 
+                    if (list.length === 0) break; // 더 이상 후배 없으면 1명이라도 종료
                 }
             }
             return combined;
         }
 
-        function renderV99(groups) {
+        function renderV101(groups) {
             const container = document.getElementById('resultContainer');
             container.innerHTML = '';
             groups.forEach((g, i) => {
@@ -184,15 +182,15 @@
                         <div>
                             <p class="text-[9px] font-black text-slate-400 uppercase italic mb-1">Senior</p>
                             <div class="bg-slate-50 p-4 rounded-3xl border border-white space-y-2 min-h-[110px] shadow-inner text-[10px]">
-                                ${g.sTeam ? `<b class="text-slate-900 text-[14px] font-black">${g.sTeam.name}</b> (${g.sTeam.id})<br><span>${g.sTeam.phone}</span>${g.sTeam.plusName ? `<div class="mt-2 pt-2 border-t border-slate-200"><b class="font-bold">${g.sTeam.plusName}</b><br><span>${g.sTeam.plusPhone}</span></div>` : ''}` : '<p class="text-slate-400 italic font-bold">학생회 조</p>'}
+                                ${g.sTeam ? `<b class="text-slate-900 text-[14px] font-black">${g.sTeam.name}</b> (${g.sTeam.id})<br><span>${g.sTeam.phone}</span>${g.sTeam.plusName ? `<div class="mt-2 pt-2 border-t border-slate-200"><b>${g.sTeam.plusName}</b><br><span>${g.sTeam.plusPhone}</span></div>` : ''}` : '<p class="text-slate-400 italic font-bold">학생회 투입 필요</p>'}
                             </div>
                         </div>
                         <div>
-                            <p class="text-[9px] font-black text-slate-400 uppercase italic mb-1">Juniors (2-3명)</p>
+                            <p class="text-[9px] font-black text-slate-400 uppercase italic mb-1">Juniors</p>
                             <div class="bg-slate-50 p-4 rounded-3xl border border-white space-y-3 min-h-[110px] shadow-inner text-[10px]">
                                 ${g.combinedJuniors.map(j => `
                                     <div class="pb-2 last:pb-0">
-                                        <b class="text-slate-900 text-[15px] font-black underline decoration-blue-100 leading-tight">${j.name}</b> (${j.type})<br>
+                                        <b class="text-slate-900 text-[14px] font-black underline decoration-blue-100">${j.name}</b> (${j.type})<br>
                                         <span>${j.phone}</span>
                                         ${j.plusName ? `<div class="mt-1 font-bold">• ${j.plusName} (${j.plusPhone})</div>` : ''}
                                         ${j.plusName2 ? `<div class="mt-0.5 font-bold">• ${j.plusName2} (${j.plusPhone2})</div>` : ''}
